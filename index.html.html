@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Government Environmental Monitoring System — Tamil Nadu</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;600;700&family=Noto+Sans:wght@300;400;500;600;700&family=Source+Code+Pro:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════
+   ROOT VARIABLES
+═══════════════════════════════════════════ */
+:root{
+  --g1:#1a6b2f; --g2:#2e8b47; --g3:#4caf70;
+  --g4:#e8f5e9; --g5:#c8e6c9;
+  --gold:#b8860b; --red:#c62828; --amber:#e65100;
+  --blue:#1565c0; --purple:#6a1b9a; --teal:#00695c;
+  --t1:#1a2e1a; --t2:#2d4a2d; --t3:#5a7a5a; --t4:#8aaa8a;
+  --bg:#f4f7f4; --bdr:#c8dfc8; --bdr2:#a8cba8; --card:#fff;
+  --fd:"Noto Serif",Georgia,serif;
+  --fb:"Noto Sans",Arial,sans-serif;
+  --fm:"Source Code Pro",monospace;
+  --sh:0 2px 12px rgba(0,0,0,.08);
+  --sh2:0 6px 28px rgba(0,0,0,.13);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:var(--fb);background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden}
+
+/* ── ANIMATIONS ── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes shimmer{0%{background-position:0%}100%{background-position:200%}}
+@keyframes ticker{0%{transform:translateX(100%)}100%{transform:translateX(-200%)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes glow{0%,100%{box-shadow:0 4px 20px rgba(26,107,47,.2),0 0 0 2px var(--g2)}
+                50%{box-shadow:0 8px 32px rgba(26,107,47,.5),0 0 0 3px var(--g3)}}
+@keyframes dangerPulse{0%,100%{box-shadow:var(--sh)}50%{box-shadow:0 0 22px rgba(198,40,40,.25)}}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(20px)}}
+
+/* ═══════════════════════════════════════════
+   PAGE SYSTEM — shows/hides pages
+═══════════════════════════════════════════ */
+.page{display:none}
+.page.show{display:block;animation:fadeUp .4s ease}
+
+/* ═══════════════════════════════════════════
+   SHARED CHROME (top strip, header, ticker, nav, footer)
+═══════════════════════════════════════════ */
+.top-strip{background:var(--g1);padding:5px 28px;display:flex;align-items:center;
+  justify-content:space-between;font-size:11px;color:#c8e6c9;letter-spacing:.05em}
+.ts-dot{width:6px;height:6px;border-radius:50%;background:#69f0ae;
+  display:inline-block;animation:pulse 1.5s infinite;margin-right:6px}
+
+.gov-header{background:#fff;border-bottom:3px solid var(--g1);box-shadow:var(--sh)}
+.hdr-inner{display:flex;align-items:center;gap:18px;padding:14px 28px;max-width:1700px;margin:0 auto}
+.emblem img{width:76px;height:76px;object-fit:contain}
+.hdr-text{flex:1}
+.min-tag{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--gold);text-transform:uppercase;margin-bottom:3px}
+.site-title{font-family:var(--fd);font-size:22px;font-weight:700;color:var(--g1);line-height:1.2}
+.title-ac{color:var(--g2)}
+.site-sub{font-size:12px;color:var(--t3);margin-top:4px}
+.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.obadge{display:flex;align-items:center;gap:6px;padding:4px 12px;background:var(--g4);border:1px solid var(--g5);border-radius:20px}
+.obdot{width:8px;height:8px;border-radius:50%;background:var(--g2);animation:pulse 1.5s infinite}
+.obtxt{font-size:11px;font-weight:700;color:var(--g1);letter-spacing:.08em}
+.hdr-clock{font-family:var(--fm);font-size:11px;color:var(--t3);text-align:right}
+
+.ticker-bar{background:var(--g4);border-bottom:1px solid var(--g5);padding:6px 28px;
+  display:flex;align-items:center;gap:12px;overflow:hidden}
+.t-lbl{font-size:10px;font-weight:700;color:var(--g1);letter-spacing:.1em;
+  padding:2px 8px;border:1px solid var(--g2);border-radius:3px;background:#fff;white-space:nowrap;flex-shrink:0}
+.t-scroll{overflow:hidden;flex:1}
+.t-scroll span{display:inline-block;animation:ticker 42s linear infinite;
+  font-size:12px;color:var(--t2);font-weight:500;white-space:nowrap}
+
+.nav-bar{background:var(--g1);padding:0 28px;display:flex;align-items:center;gap:2px}
+.nb{padding:9px 16px;font-size:13px;font-weight:600;color:#c8e6c9;cursor:pointer;
+  border-bottom:3px solid transparent;background:none;border-top:none;border-left:none;border-right:none;transition:all .2s}
+.nb:hover{background:rgba(255,255,255,.1);color:#fff}
+.nb.act{color:#fff;border-bottom-color:#69f0ae;background:rgba(255,255,255,.08)}
+.nb-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.nb-user{display:flex;align-items:center;gap:7px;font-size:13px;color:#c8e6c9}
+.nb-av{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.2);
+  border:1px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.nb-btn{padding:5px 14px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);
+  border-radius:4px;color:#fff;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s}
+.nb-btn:hover{background:rgba(255,255,255,.25)}
+
+.gov-footer{background:var(--g1);padding:13px 28px;display:flex;align-items:center;
+  justify-content:space-between;flex-wrap:wrap;gap:8px}
+.gf-l{font-size:11px;color:#c8e6c9;line-height:1.6}
+.gf-r{font-family:var(--fm);font-size:10px;color:rgba(200,230,200,.6)}
+
+/* ═══════════════════════════════════════════
+   PAGE 1 — LOGIN
+═══════════════════════════════════════════ */
+.login-wrap{display:flex;align-items:flex-start;justify-content:center;
+  gap:28px;padding:40px 28px;max-width:1100px;margin:0 auto;flex-wrap:wrap}
+.login-card{width:420px;flex-shrink:0;background:#fff;border:1px solid var(--bdr);
+  border-radius:8px;overflow:hidden;box-shadow:var(--sh2)}
+.card-top{height:4px;background:linear-gradient(90deg,var(--g1),var(--g3),var(--g1));
+  background-size:200%;animation:shimmer 4s linear infinite}
+.card-hdr{padding:22px 26px 18px;text-align:center;border-bottom:1px solid var(--bdr);background:var(--g4)}
+.lock{width:58px;height:58px;margin:0 auto 12px;border:2px solid var(--g2);border-radius:50%;
+  background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(46,139,71,.2)}
+.card-title{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--g1)}
+.card-sub{font-size:11px;font-weight:600;color:var(--t3);letter-spacing:.1em;margin-top:4px;text-transform:uppercase}
+.card-body{padding:24px 26px}
+.err{padding:10px 14px;border-radius:5px;background:#ffebee;border:1px solid #ef9a9a;
+  color:var(--red);font-size:13px;margin-bottom:14px;display:none}
+.igrp{margin-bottom:16px}
+.igrp label{display:block;font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.08em;margin-bottom:6px;text-transform:uppercase}
+.iwrap{position:relative;display:flex;align-items:center}
+.iico{position:absolute;left:12px;color:var(--t3);display:flex;pointer-events:none}
+.iwrap input{width:100%;padding:11px 40px 11px 38px;background:#fff;border:1px solid var(--bdr2);
+  border-radius:5px;color:var(--t1);font-family:var(--fb);font-size:14px;outline:none;transition:all .2s}
+.iwrap input::placeholder{color:var(--t4)}
+.iwrap input:focus{border-color:var(--g2);background:var(--g4);box-shadow:0 0 0 3px rgba(46,139,71,.1)}
+.eye{position:absolute;right:12px;background:none;border:none;cursor:pointer;
+  color:var(--t3);display:flex;padding:4px;transition:color .2s}
+.eye:hover{color:var(--g1)}
+.irow{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.cblbl{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--t2)}
+.cblbl input{display:none}
+.cm{width:16px;height:16px;border:2px solid var(--bdr2);border-radius:3px;position:relative;background:#fff;flex-shrink:0;transition:all .2s}
+.cblbl input:checked+.cm{background:var(--g2);border-color:var(--g2)}
+.cblbl input:checked+.cm::after{content:"✓";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700}
+.login-btn{width:100%;padding:13px;background:var(--g1);border:none;border-radius:5px;
+  color:#fff;cursor:pointer;font-family:var(--fb);font-size:15px;font-weight:700;letter-spacing:.08em;
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:all .25s;
+  box-shadow:0 3px 12px rgba(26,107,47,.3)}
+.login-btn:hover{background:var(--g2);transform:translateY(-1px);box-shadow:0 6px 18px rgba(26,107,47,.35)}
+.login-btn:active{transform:translateY(0)}
+.sec-note{margin-top:14px;padding:11px 13px;border-radius:5px;background:#fff8e1;
+  border:1px solid #ffe082;font-size:12px;color:#6d4c00;line-height:1.65;display:flex;gap:8px}
+.card-ftr{padding:9px 26px;border-top:1px solid var(--bdr);background:#fafafa;
+  display:flex;justify-content:space-between;font-family:var(--fm);font-size:10px;color:var(--t4)}
+.side-info{flex:1;min-width:260px;max-width:420px;display:flex;flex-direction:column;gap:16px}
+.info-blk{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:18px;box-shadow:var(--sh)}
+.info-blk h3{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--g1);
+  margin-bottom:10px;border-bottom:2px solid var(--g5);padding-bottom:7px}
+.info-blk p{font-size:13px;color:var(--t2);line-height:1.7}
+.met-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.met-card{background:#fff;border:1px solid var(--bdr);border-top:3px solid var(--g2);
+  border-radius:7px;padding:14px;text-align:center;box-shadow:var(--sh)}
+.met-val{font-family:var(--fm);font-size:22px;font-weight:600;color:var(--g1);display:block}
+.met-lbl{font-size:11px;color:var(--t3);margin-top:4px;display:block;font-weight:600}
+.alt{padding:9px 12px;margin-top:8px;border-radius:5px;font-size:13px;font-weight:500}
+.alt.w{background:#fff3e0;border-left:4px solid var(--amber);color:#bf360c}
+.alt.i{background:#e3f2fd;border-left:4px solid var(--blue);color:#0d47a1}
+.alt.ok{background:var(--g4);border-left:4px solid var(--g2);color:var(--g1)}
+
+/* ═══════════════════════════════════════════
+   PAGE 2 — DISTRICTS
+═══════════════════════════════════════════ */
+.pg-hdr{padding:18px 28px 12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.pg-hdr h2{font-family:var(--fd);font-size:20px;font-weight:700;color:var(--g1);margin-bottom:3px}
+.pg-hdr p{font-size:13px;color:var(--t3)}
+.legend{display:flex;align-items:center;gap:14px;font-size:12px;font-weight:600;color:var(--t3)}
+.ld{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px}
+.dist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));
+  gap:13px;padding:0 28px 36px}
+.dc{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:15px 11px;
+  text-align:center;box-shadow:var(--sh);animation:cardIn .4s ease both;position:relative;overflow:hidden}
+.dc.off{opacity:.52;cursor:default}
+.dc.off:hover{transform:none;box-shadow:var(--sh)}
+.dc.salem{border:2px solid var(--g2);border-top:4px solid var(--g1);
+  background:linear-gradient(160deg,#fff 60%,var(--g4));cursor:pointer;
+  animation:cardIn .3s ease both,glow 3s ease-in-out infinite}
+.dc.salem:hover{transform:translateY(-5px)}
+.dc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.dd{width:8px;height:8px;border-radius:50%}
+.dd.on{background:var(--g2);animation:pulse 2s infinite}
+.dd.off{background:#ccc}
+.dbadge{font-size:9px;font-weight:700;letter-spacing:.07em;padding:2px 7px;border-radius:10px}
+.dbadge.on{background:var(--g4);border:1px solid var(--g5);color:var(--g1)}
+.dbadge.off{background:#f5f5f5;border:1px solid #ddd;color:#9e9e9e}
+.dc-icon{font-size:28px;margin:3px 0 7px;display:block}
+.dc.off .dc-icon{filter:grayscale(1);opacity:.6}
+.dc-name{font-family:var(--fd);font-size:13px;font-weight:700;margin-bottom:2px}
+.dc-name.dim{color:#9e9e9e}
+.dc-region{font-size:10px;color:var(--t4);font-weight:600;margin-bottom:9px}
+.dc.off .dc-region{color:#ccc}
+.dc-vals{display:flex;justify-content:space-around;padding:7px 0;
+  border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);margin-bottom:7px}
+.dv{display:flex;flex-direction:column;align-items:center}
+.dv-v{font-family:var(--fm);font-size:12px;font-weight:600;color:var(--g1)}
+.dv-v.na{color:#ccc}
+.dv-l{font-size:9px;color:var(--t4);font-weight:600;margin-top:1px}
+.dc-cta{padding:6px;border-radius:4px;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+  display:flex;align-items:center;justify-content:center;gap:5px}
+.dc-cta.go{background:var(--g1);color:#fff;cursor:pointer;transition:background .2s}
+.dc-cta.go:hover{background:var(--g2)}
+.dc-cta.no{background:#f5f5f5;color:#bbb}
+/* modal */
+.modal-bg{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);
+  display:none;align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal-box{background:#fff;border:1px solid var(--bdr);border-radius:10px;
+  width:340px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.2);animation:cardIn .3s ease}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;background:var(--g4);border-bottom:1px solid var(--bdr)}
+.modal-hdr h3{font-family:var(--fd);font-size:14px;font-weight:700;color:var(--g1)}
+.modal-x{background:none;border:none;font-size:20px;cursor:pointer;color:var(--t3);padding:2px 6px;line-height:1}
+.modal-body{padding:22px 20px;text-align:center}
+.modal-ico{font-size:42px;margin-bottom:10px}
+.modal-nm{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--t1);margin-bottom:7px}
+.modal-msg{font-size:13px;color:var(--t2);line-height:1.7}
+.modal-tag{font-family:var(--fm);font-size:10px;color:var(--t4);margin-top:7px}
+.modal-btn{margin-top:16px;padding:9px 26px;background:var(--g1);border:none;
+  color:#fff;border-radius:5px;cursor:pointer;font-weight:700;font-size:13px;transition:background .2s}
+.modal-btn:hover{background:var(--g2)}
+
+/* ═══════════════════════════════════════════
+   PAGE 3 — DASHBOARD
+═══════════════════════════════════════════ */
+.hero{padding:13px 28px;background:#fff;border-bottom:1px solid var(--bdr);box-shadow:var(--sh)}
+.hero-banner{background:linear-gradient(135deg,var(--g1),var(--g2));border-radius:8px;
+  padding:13px 18px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.hero-ttl{font-family:var(--fd);font-size:19px;font-weight:700;color:#fff}
+.hero-sub{font-size:12px;color:#c8e6c9;margin-top:3px}
+.live-pill{display:flex;align-items:center;gap:6px;padding:5px 13px;
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+  border-radius:20px;font-size:12px;color:#fff;font-weight:700}
+.lpulse{width:8px;height:8px;border-radius:50%;background:#69f0ae;animation:pulse 1.5s infinite}
+.hero-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:11px}
+.hs{flex:1;min-width:110px;padding:10px 12px;border-radius:7px;border:1px solid var(--bdr);background:#fff;box-shadow:var(--sh)}
+.hs.g{border-top:3px solid var(--g2)}.hs.b{border-top:3px solid var(--blue)}
+.hs.a{border-top:3px solid var(--amber)}.hs.p{border-top:3px solid var(--purple)}
+.hs.t{border-top:3px solid var(--teal)}.hs.r{border-top:3px solid var(--red)}
+.hsv{display:block;font-family:var(--fm);font-size:22px;font-weight:700}
+.hs.g .hsv{color:var(--g1)}.hs.b .hsv{color:var(--blue)}.hs.a .hsv{color:var(--amber)}
+.hs.p .hsv{color:var(--purple)}.hs.t .hsv{color:var(--teal)}.hs.r .hsv{color:var(--red)}
+.hsu{font-size:10px;color:var(--t3);font-weight:600}
+.hsl{display:block;font-size:9.5px;font-weight:700;color:var(--t3);letter-spacing:.07em;text-transform:uppercase;margin-top:5px}
+.hss{display:block;font-size:11px;color:var(--t2);margin-top:2px;font-weight:600}
+.hero-meta{display:flex;gap:16px;font-size:12px;color:var(--t3);font-weight:600;flex-wrap:wrap;align-items:center}
+.cd{width:8px;height:8px;border-radius:50%;background:#ffb300;display:inline-block;margin-right:4px;transition:background .4s}
+.cd.on{background:var(--g2);animation:pulse 2s infinite}
+
+.content{padding:0 28px 32px;max-width:1700px;margin:0 auto}
+.sec-lbl{display:flex;align-items:center;gap:12px;padding:16px 0 11px}
+.sl-line{flex:1;height:2px;background:var(--g5)}
+.sl-txt{font-size:11px;font-weight:700;color:var(--g1);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+
+/* Industry status */
+.ind-bar{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:13px 15px;box-shadow:var(--sh);margin-bottom:16px}
+.ind-bar-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ind-bar-hdr h3{font-family:var(--fd);font-size:13px;font-weight:700;color:var(--g1)}
+.ind-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+@media(max-width:700px){.ind-grid{grid-template-columns:1fr 1fr}}
+.ind-item{text-align:center;padding:9px 5px;border:1px solid var(--bdr);border-radius:7px;background:var(--g4)}
+.iv{font-family:var(--fm);font-size:14px;font-weight:600}
+.iv.ok{color:var(--g1)}.iv.warn{color:var(--amber)}.iv.bad{color:var(--red)}
+.il{font-size:9.5px;color:var(--t4);margin-top:3px;font-weight:700;text-transform:uppercase}
+
+/* Two column layout */
+.two-col{display:grid;grid-template-columns:1fr 290px;gap:15px;margin-bottom:18px}
+@media(max-width:1100px){.two-col{grid-template-columns:1fr}}
+
+/* Sensor value cards */
+.sv4{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.sv{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:15px;
+  box-shadow:var(--sh);position:relative;overflow:hidden;transition:all .25s;animation:cardIn .4s ease both}
+.sv::before{content:"";position:absolute;top:0;left:0;right:0;height:3px}
+.sv.a::before{background:linear-gradient(90deg,#7a3b00,var(--amber))}
+.sv.b::before{background:linear-gradient(90deg,#0d3b7a,var(--blue))}
+.sv.g::before{background:linear-gradient(90deg,var(--g3),var(--g1))}
+.sv.p::before{background:linear-gradient(90deg,#4a1070,var(--purple))}
+.sv.ws{border-color:var(--amber)!important}
+.sv.ds{border-color:var(--red)!important;animation:cardIn .4s ease both,dangerPulse 2s infinite}
+.sv-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sv-ico{font-size:20px}
+.sv-badge{font-size:9px;font-weight:700;letter-spacing:.07em;padding:2px 8px;border-radius:10px}
+.sv-badge.ok{background:var(--g4);color:var(--g1);border:1px solid var(--g5)}
+.sv-badge.warn{background:#fff3e0;color:var(--amber);border:1px solid #ffcc80}
+.sv-badge.danger{background:#ffebee;color:var(--red);border:1px solid #ef9a9a}
+.sv-val{font-family:var(--fm);font-size:30px;font-weight:600;line-height:1;transition:color .3s}
+.sv-val.ok{color:var(--g1)}.sv-val.warn{color:var(--amber)}.sv-val.danger{color:var(--red)}
+.sv-unit{font-family:var(--fm);font-size:11px;color:var(--t3);margin-left:3px}
+.sv-name{font-size:11px;font-weight:700;color:var(--t3);margin-top:6px;letter-spacing:.05em;text-transform:uppercase}
+.sv-bar{height:4px;background:var(--bg);border-radius:2px;margin-top:7px;overflow:hidden}
+.sv-bar-fill{height:100%;border-radius:2px;transition:width .8s ease,background .3s}
+.sv-thresh{font-family:var(--fm);font-size:10px;color:var(--t4);margin-top:3px}
+
+/* Controls */
+.ctrl{display:flex;flex-direction:column;gap:12px}
+.panel{background:#fff;border:1px solid var(--bdr);border-radius:8px;overflow:hidden;box-shadow:var(--sh)}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--bdr);background:var(--g4)}
+.panel-hdr h3{font-family:var(--fd);font-size:13px;font-weight:700;color:var(--g1)}
+.panel-body{padding:12px 14px}
+.th-row{margin-bottom:10px}
+.th-lbl{display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--t2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.th-lbl span{font-family:var(--fm);color:var(--amber)}
+.th-inp{width:100%;background:var(--bg);border:1px solid var(--bdr2);border-radius:5px;
+  padding:7px 10px;color:var(--t1);font-family:var(--fm);font-size:13px;outline:none;transition:border-color .2s}
+.th-inp:focus{border-color:var(--g2);background:var(--g4)}
+.th-save{width:100%;padding:8px;background:var(--g1);border:none;border-radius:5px;
+  color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s;margin-top:5px;letter-spacing:.05em}
+.th-save:hover{background:var(--g2)}
+.ep{background:#fff;border:1px solid #90caf9;border-top:3px solid var(--blue);border-radius:8px;overflow:hidden;box-shadow:var(--sh)}
+.ep-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+  border-bottom:1px solid var(--bdr);background:linear-gradient(135deg,#e3f2fd,#fff);flex-wrap:wrap;gap:5px}
+.ep-hdr h3{font-family:var(--fd);font-size:12.5px;font-weight:700;color:var(--blue)}
+.ep-chip{font-family:var(--fm);font-size:10px;font-weight:700;padding:3px 9px;border-radius:12px}
+.ep-chip.ok{background:var(--g4);color:var(--g1);border:1px solid var(--g5)}
+.ep-chip.err{background:#ffebee;color:var(--red);border:1px solid #ef9a9a}
+.ep-body{padding:12px 14px}
+.ep-f{margin-bottom:9px}
+.ep-f label{display:block;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+.ep-f input{width:100%;background:var(--bg);border:1px solid var(--bdr2);border-radius:5px;
+  padding:7px 9px;color:var(--t1);font-family:var(--fm);font-size:12px;outline:none;transition:border-color .2s}
+.ep-f input:focus{border-color:var(--blue)}.ep-f input::placeholder{color:var(--t4)}
+.ep-btns{display:flex;gap:7px;margin-top:4px}
+.ep-save{flex:1;padding:7px;background:var(--blue);border:none;border-radius:5px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:background .2s}
+.ep-save:hover{background:#1976d2}
+.ep-test{flex:1;padding:7px;background:#fff;border:1px solid #90caf9;border-radius:5px;color:var(--blue);font-size:12px;font-weight:700;cursor:pointer;transition:background .2s}
+.ep-test:hover{background:#e3f2fd}
+.ep-last{font-family:var(--fm);font-size:10px;color:var(--t4);margin-top:5px}
+.ep-note{margin-top:8px;padding:7px 9px;background:#fff8e1;border:1px solid #ffe082;border-radius:4px;font-size:11px;color:#6d4c00;line-height:1.6}
+
+/* Charts */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:1280px){.g4{grid-template-columns:1fr 1fr}}
+@media(max-width:860px){.g2,.g4{grid-template-columns:1fr}}
+.gc{background:#fff;border:1px solid var(--bdr);border-radius:8px;overflow:hidden;box-shadow:var(--sh);animation:cardIn .5s ease both}
+.gc-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 13px;
+  border-bottom:1px solid var(--bdr);background:linear-gradient(135deg,var(--g4),#fff)}
+.gc-tb{display:flex;align-items:center;gap:8px}
+.gc-num{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--g5)}
+.gc-title{font-family:var(--fd);font-size:12.5px;font-weight:700;color:var(--g1)}
+.gc-sub{font-size:10px;color:var(--t3);margin-top:2px}
+.gc-legend{display:flex;gap:8px}
+.gcl{display:flex;align-items:center;gap:4px;font-family:var(--fm);font-size:10px;color:var(--t3)}
+.gcl-dot{width:8px;height:8px;border-radius:50%}
+.gc-body{padding:10px;height:185px;background:#fff}
+.gc-body canvas{width:100%!important;height:100%!important}
+.gc-ftr{padding:6px 13px;border-top:1px solid var(--bdr);display:flex;align-items:center;gap:11px;flex-wrap:wrap;background:#fafafa}
+.gcf{font-size:11px;font-weight:600;color:var(--t3)}
+.gcf.g{color:var(--g1)}.gcf.am{color:var(--amber)}.gcf.bl{color:var(--blue)}.gcf.pu{color:var(--purple)}
+.gcf.thr{margin-left:auto;font-style:italic;color:var(--t4);font-weight:400}
+
+/* Alert log */
+.alog{background:#fff;border:1px solid var(--bdr);border-radius:8px;overflow:hidden;box-shadow:var(--sh)}
+.alog-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;background:#fff8e1;border-bottom:1px solid #ffe082}
+.alog-hdr h3{font-family:var(--fd);font-size:13px;font-weight:700;color:var(--amber)}
+.alog-clr{padding:4px 12px;border:1px solid var(--bdr);background:#fff;color:var(--t3);border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;transition:all .2s}
+.alog-clr:hover{border-color:var(--g2);color:var(--g1)}
+.alog-body{padding:10px;max-height:120px;overflow-y:auto;background:#fff}
+.alog-body::-webkit-scrollbar{width:4px}.alog-body::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+.ali{font-family:var(--fm);font-size:11px;padding:5px 10px;border-radius:4px;margin-bottom:3px;line-height:1.5}
+.ali.inf{color:#0d47a1;background:#e3f2fd}.ali.wrn{color:#bf360c;background:#fff3e0}
+.ali.ok{color:var(--g1);background:var(--g4)}.ali.err{color:var(--red);background:#ffebee}
+.ali.mail{color:var(--purple);background:rgba(106,27,154,.07);border-left:2px solid var(--purple)}
+
+/* Toast */
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{padding:11px 16px;border-radius:6px;font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:9px;animation:toastIn .3s ease;
+  box-shadow:var(--sh2);background:#fff;pointer-events:auto}
+.toast.ok{border:1px solid var(--g5);color:var(--g1)}
+.toast.err{border:1px solid #ef9a9a;color:var(--red)}
+.toast.mail{border:1px solid #ce93d8;color:var(--purple)}
+.toast.out{animation:toastOut .3s ease forwards}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     SHARED CHROME (always visible)
+═══════════════════════════════════════════════════ -->
+<div class="top-strip">
+  <span><span class="ts-dot"></span>GOVERNMENT OF TAMIL NADU &nbsp;·&nbsp; DEPARTMENT OF ENVIRONMENT &nbsp;·&nbsp; <span id="top-label">RESTRICTED — AUTHORISED ACCESS ONLY</span></span>
+  <span id="top-ts" style="font-family:var(--fm);font-size:10px">--:--:-- IST</span>
+</div>
+
+<div class="gov-header">
+  <div class="hdr-inner">
+    <div class="emblem">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Seal_of_Tamil_Nadu.svg/150px-Seal_of_Tamil_Nadu.svg.png"
+           alt="Tamil Nadu Government Emblem" onerror="this.style.display='none'"/>
+    </div>
+    <div class="hdr-text">
+      <div class="min-tag">Government of Tamil Nadu — Department of Environment</div>
+      <div class="site-title" id="hdr-title">Environmental Control &amp; <span class="title-ac">Monitoring System</span></div>
+      <div class="site-sub" id="hdr-sub">Integrated Real-Time Industrial Pollution &amp; Water Quality Surveillance Platform — Tamil Nadu</div>
+    </div>
+    <div class="hdr-right">
+      <div class="obadge"><span class="obdot"></span><span class="obtxt" id="conn-txt">SYSTEM ONLINE</span></div>
+      <div class="hdr-clock" id="hdr-clock">--/--/---- --:--:-- IST</div>
+    </div>
+  </div>
+</div>
+
+<div class="ticker-bar">
+  <span class="t-lbl">LIVE FEED</span>
+  <div class="t-scroll"><span id="ticker-txt">Environmental Monitoring Active · 32 Districts Tracked · Authorised Officer Access Required · Tamil Nadu Environmental Authority · 2026</span></div>
+</div>
+
+<div class="nav-bar" id="nav-bar" style="display:none">
+  <button class="nb" id="nb-dist" onclick="goPage('districts')">Districts</button>
+  <button class="nb act" id="nb-dash" onclick="goPage('dashboard')">Salem Dashboard</button>
+  <button class="nb">Reports</button>
+  <button class="nb">Settings</button>
+  <div class="nb-right">
+    <div class="nb-user">
+      <div class="nb-av" id="nav-av">GO</div>
+      <span id="nav-nm">Officer</span>
+    </div>
+    <button class="nb-btn" onclick="doLogout()">Logout</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     PAGE 1 — LOGIN
+═══════════════════════════════════════════════════ -->
+<div class="page show" id="page-login">
+  <div class="login-wrap">
+
+    <div class="login-card">
+      <div class="card-top"></div>
+      <div class="card-hdr">
+        <div class="lock">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1a6b2f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div class="card-title">Officer Login</div>
+        <div class="card-sub">Authorised Personnel Only</div>
+      </div>
+      <div class="card-body">
+        <div class="err" id="login-err"></div>
+        <div class="igrp">
+          <label>Officer ID / Username</label>
+          <div class="iwrap">
+            <span class="iico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg></span>
+            <input type="text" id="l-user" placeholder="Enter your Officer ID" autocomplete="username"/>
+          </div>
+        </div>
+        <div class="igrp">
+          <label>Password</label>
+          <div class="iwrap">
+            <span class="iico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+            <input type="password" id="l-pass" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doLogin()"/>
+            <button class="eye" onclick="togglePw()" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="irow">
+          <label class="cblbl"><input type="checkbox"/><span class="cm"></span>Keep me signed in</label>
+          <a href="#" style="font-size:13px;color:var(--g1);font-weight:700;text-decoration:none">Forgot password?</a>
+        </div>
+        <button class="login-btn" onclick="doLogin()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Login to Portal
+        </button>
+        <div class="sec-note"><span>⚠</span><span>This is a restricted Government of Tamil Nadu system. Unauthorised access is punishable under IT Act 2000. All sessions are monitored and recorded.</span></div>
+      </div>
+      <div class="card-ftr"><span>Version 3.2.1 · TN-ENV-GEMS</span><span>ISO 27001 Certified</span></div>
+    </div>
+
+    <div class="side-info">
+      <div class="info-blk">
+        <h3>About This Portal</h3>
+        <p>Real-time environmental quality monitoring platform covering all 32 Tamil Nadu districts. Tracks air quality, water parameters, and hazardous gas levels via integrated ESP32 sensor networks — 24 hours a day, 7 days a week.</p>
+      </div>
+      <div class="met-grid">
+        <div class="met-card"><span class="met-val">32</span><span class="met-lbl">Districts</span></div>
+        <div class="met-card"><span class="met-val">4</span><span class="met-lbl">Active Sensors</span></div>
+        <div class="met-card"><span class="met-val">99.7%</span><span class="met-lbl">Uptime</span></div>
+        <div class="met-card"><span class="met-val">2s</span><span class="met-lbl">Data Refresh</span></div>
+      </div>
+      <div class="info-blk">
+        <h3>Active System Status</h3>
+        <div class="alt w">Chennai — PM2.5 above safe threshold (88 µg/m³)</div>
+        <div class="alt i">Vellore — Scheduled sensor maintenance today</div>
+        <div class="alt ok">Salem — All parameters within normal range ✓</div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /page-login -->
+
+<!-- ═══════════════════════════════════════════════════
+     PAGE 2 — DISTRICTS
+═══════════════════════════════════════════════════ -->
+<div class="page" id="page-districts">
+  <div class="pg-hdr">
+    <div>
+      <h2>Tamil Nadu — 32 District Monitoring Stations</h2>
+      <p>Click on <strong style="color:var(--g1)">Salem</strong> to open the live environmental dashboard &nbsp;·&nbsp; Other districts: sensor installation in progress</p>
+    </div>
+    <div class="legend">
+      <span><span class="ld" style="background:var(--g2)"></span>Live Data</span>
+      <span><span class="ld" style="background:#ccc"></span>Offline / Pending</span>
+    </div>
+  </div>
+  <div class="dist-grid" id="dist-grid"></div>
+
+  <!-- Modal -->
+  <div class="modal-bg" id="modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-box">
+      <div class="modal-hdr">
+        <h3 id="m-title">District Unavailable</h3>
+        <button class="modal-x" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-ico" id="m-ico">🔒</div>
+        <div class="modal-nm" id="m-name"></div>
+        <div class="modal-msg" id="m-msg"></div>
+        <div class="modal-tag">Status: Pending Installation · Phase 2 Deployment</div>
+        <button class="modal-btn" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div><!-- /page-districts -->
+
+<!-- ═══════════════════════════════════════════════════
+     PAGE 3 — DASHBOARD
+═══════════════════════════════════════════════════ -->
+<div class="page" id="page-dashboard">
+
+  <div class="hero">
+    <div class="hero-banner">
+      <div><div class="hero-ttl">⛰️ Salem District — Environmental Dashboard</div>
+        <div class="hero-sub">Live MQ-2 · MQ-135 · pH · Turbidity · Government Authority View · 2026</div></div>
+      <div class="live-pill"><span class="lpulse"></span>LIVE DATA</div>
+    </div>
+    <div class="hero-stats">
+      <div class="hs a"><span class="hsv" id="hv-mq2">—</span><span class="hsu">ppm</span><span class="hsl">MQ-2 Smoke/Gas</span><span class="hss" id="hs-mq2">Waiting…</span></div>
+      <div class="hs b"><span class="hsv" id="hv-mq135">—</span><span class="hsu">ppm</span><span class="hsl">MQ-135 Air Quality</span><span class="hss" id="hs-mq135">Waiting…</span></div>
+      <div class="hs g"><span class="hsv" id="hv-ph">—</span><span class="hsu">pH</span><span class="hsl">Water pH Level</span><span class="hss" id="hs-ph">Waiting…</span></div>
+      <div class="hs p"><span class="hsv" id="hv-turb">—</span><span class="hsu">NTU</span><span class="hsl">Water Turbidity</span><span class="hss" id="hs-turb">Waiting…</span></div>
+      <div class="hs t"><span class="hsv" id="hv-reads">0</span><span class="hsu"></span><span class="hsl">Total Readings</span><span class="hss" id="hs-ts">—</span></div>
+      <div class="hs r"><span class="hsv" id="hv-alerts">0</span><span class="hsu"></span><span class="hsl">Active Alerts</span><span class="hss" id="hv-mails">0 emails sent</span></div>
+    </div>
+    <div class="hero-meta">
+      <span><span class="cd" id="cd-dot"></span><span id="cd-status">Connecting…</span></span>
+      <span>Salem · Central Tamil Nadu</span><span>ESP32 WROOM-32</span><span>Refresh: 2s</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Industry status -->
+    <div class="sec-lbl"><div class="sl-line"></div><div class="sl-txt">Industry Compliance — Real-time</div><div class="sl-line"></div></div>
+    <div class="ind-bar">
+      <div class="ind-bar-hdr"><h3>Industrial Facility Compliance Status</h3><span style="font-family:var(--fm);font-size:10px;color:var(--t4)" id="ind-ts">Last: —</span></div>
+      <div class="ind-grid">
+        <div class="ind-item"><div class="iv ok" id="ind-mq2">—</div><div class="il">MQ-2 Smoke</div></div>
+        <div class="ind-item"><div class="iv ok" id="ind-mq135">—</div><div class="il">MQ-135 Air</div></div>
+        <div class="ind-item"><div class="iv ok" id="ind-ph">—</div><div class="il">pH Level</div></div>
+        <div class="ind-item"><div class="iv ok" id="ind-turb">—</div><div class="il">Turbidity</div></div>
+      </div>
+    </div>
+
+    <!-- Sensor cards + controls -->
+    <div class="sec-lbl"><div class="sl-line"></div><div class="sl-txt">Live Sensor Values</div><div class="sl-line"></div></div>
+    <div class="two-col">
+      <div class="sv4">
+        <div class="sv a" id="sv-mq2">
+          <div class="sv-top"><span class="sv-ico">🔥</span><span class="sv-badge ok" id="badge-mq2">WAITING</span></div>
+          <div><span class="sv-val ok" id="val-mq2">—</span><span class="sv-unit">ppm</span></div>
+          <div class="sv-name">MQ-2 Smoke / Gas</div>
+          <div class="sv-bar"><div class="sv-bar-fill" id="bar-mq2" style="width:0;background:var(--g2)"></div></div>
+          <div class="sv-thresh" id="td-mq2">Threshold: 300 ppm</div>
+        </div>
+        <div class="sv b" id="sv-mq135">
+          <div class="sv-top"><span class="sv-ico">🌫️</span><span class="sv-badge ok" id="badge-mq135">WAITING</span></div>
+          <div><span class="sv-val ok" id="val-mq135">—</span><span class="sv-unit">ppm</span></div>
+          <div class="sv-name">MQ-135 Air Quality</div>
+          <div class="sv-bar"><div class="sv-bar-fill" id="bar-mq135" style="width:0;background:var(--blue)"></div></div>
+          <div class="sv-thresh" id="td-mq135">Threshold: 700 ppm</div>
+        </div>
+        <div class="sv g" id="sv-ph">
+          <div class="sv-top"><span class="sv-ico">🧪</span><span class="sv-badge ok" id="badge-ph">WAITING</span></div>
+          <div><span class="sv-val ok" id="val-ph">—</span><span class="sv-unit">pH</span></div>
+          <div class="sv-name">Water pH Level</div>
+          <div class="sv-bar"><div class="sv-bar-fill" id="bar-ph" style="width:0;background:var(--g2)"></div></div>
+          <div class="sv-thresh">Safe range: 6.5 – 8.5</div>
+        </div>
+        <div class="sv p" id="sv-turb">
+          <div class="sv-top"><span class="sv-ico">💧</span><span class="sv-badge ok" id="badge-turb">WAITING</span></div>
+          <div><span class="sv-val ok" id="val-turb">—</span><span class="sv-unit">NTU</span></div>
+          <div class="sv-name">Water Turbidity</div>
+          <div class="sv-bar"><div class="sv-bar-fill" id="bar-turb" style="width:0;background:var(--purple)"></div></div>
+          <div class="sv-thresh" id="td-turb">Threshold: 50 NTU</div>
+        </div>
+      </div>
+
+      <div class="ctrl">
+        <div class="panel">
+          <div class="panel-hdr"><h3>⚙ Threshold Controls</h3><span style="font-family:var(--fm);font-size:10px;color:var(--t3)">Auto-email</span></div>
+          <div class="panel-body">
+            <div class="th-row"><div class="th-lbl">MQ-2 Smoke<span id="tv-mq2"> 300</span> ppm</div><input class="th-inp" type="number" id="th-mq2" value="300"/></div>
+            <div class="th-row"><div class="th-lbl">MQ-135 Air<span id="tv-mq135"> 700</span> ppm</div><input class="th-inp" type="number" id="th-mq135" value="700"/></div>
+            <div class="th-row"><div class="th-lbl">pH Min<span id="tv-phlo"> 6.5</span></div><input class="th-inp" type="number" id="th-phlo" value="6.5" step="0.1"/></div>
+            <div class="th-row"><div class="th-lbl">pH Max<span id="tv-phhi"> 8.5</span></div><input class="th-inp" type="number" id="th-phhi" value="8.5" step="0.1"/></div>
+            <div class="th-row"><div class="th-lbl">Turbidity<span id="tv-turb"> 50</span> NTU</div><input class="th-inp" type="number" id="th-turb" value="50"/></div>
+            <button class="th-save" onclick="saveTH()">✓ SAVE THRESHOLDS</button>
+          </div>
+        </div>
+        <div class="ep">
+          <div class="ep-hdr"><h3>📧 Gmail Auto-Alert (Govt → Industry)</h3><span class="ep-chip err" id="ep-status">NOT CONFIGURED</span></div>
+          <div class="ep-body">
+            <div class="ep-f"><label>EmailJS Service ID</label><input type="text" id="ej-svc" placeholder="service_xxxxxxx"/></div>
+            <div class="ep-f"><label>EmailJS Template ID</label><input type="text" id="ej-tpl" placeholder="template_xxxxxxx"/></div>
+            <div class="ep-f"><label>EmailJS Public Key</label><input type="text" id="ej-key" placeholder="xxxxxxxxxxxxxxxxxxxx"/></div>
+            <div class="ep-f"><label>Industry Email</label><input type="email" id="ej-to" placeholder="industry@gmail.com"/></div>
+            <div class="ep-btns">
+              <button class="ep-save" onclick="saveEC()">💾 Save</button>
+              <button class="ep-test" onclick="testEmail()">📤 Test Email</button>
+            </div>
+            <div class="ep-last" id="ep-last">Last alert: Never</div>
+            <div class="ep-note">✅ Free · 200 emails/month · No credit card · Sign up at emailjs.com · 5 min cooldown per sensor</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison charts -->
+    <div class="sec-lbl"><div class="sl-line"></div><div class="sl-txt">Comparison Graphs</div><div class="sl-line"></div></div>
+    <div class="g2">
+      <div class="gc" style="animation-delay:.0s">
+        <div class="gc-hdr"><div class="gc-tb"><span class="gc-num">01</span><div><div class="gc-title">Air Quality Comparison</div><div class="gc-sub">MQ-2 vs MQ-135 · ppm</div></div></div><div class="gc-legend"><span class="gcl"><span class="gcl-dot" style="background:var(--amber)"></span>MQ-2</span><span class="gcl"><span class="gcl-dot" style="background:var(--blue)"></span>MQ-135</span></div></div>
+        <div class="gc-body"><canvas id="c-air"></canvas></div>
+        <div class="gc-ftr"><span class="gcf am">MQ-2: <span id="cf-mq2">—</span> ppm</span><span class="gcf bl">MQ-135: <span id="cf-mq135">—</span> ppm</span><span class="gcf thr">Limits: 300 / 700 ppm</span></div>
+      </div>
+      <div class="gc" style="animation-delay:.1s">
+        <div class="gc-hdr"><div class="gc-tb"><span class="gc-num">02</span><div><div class="gc-title">Water Quality Comparison</div><div class="gc-sub">pH vs Turbidity · Dual Axis</div></div></div><div class="gc-legend"><span class="gcl"><span class="gcl-dot" style="background:var(--g2)"></span>pH (L)</span><span class="gcl"><span class="gcl-dot" style="background:var(--purple)"></span>NTU (R)</span></div></div>
+        <div class="gc-body"><canvas id="c-water"></canvas></div>
+        <div class="gc-ftr"><span class="gcf g">pH: <span id="cf-ph">—</span></span><span class="gcf pu">Turb: <span id="cf-turb">—</span> NTU</span><span class="gcf thr">Safe: 6.5–8.5 · &lt;50 NTU</span></div>
+      </div>
+    </div>
+
+    <!-- Individual charts -->
+    <div class="sec-lbl"><div class="sl-line"></div><div class="sl-txt">Individual Sensor Graphs</div><div class="sl-line"></div></div>
+    <div class="g4">
+      <div class="gc" style="animation-delay:.0s"><div class="gc-hdr"><div class="gc-tb"><span class="gc-num">03</span><div><div class="gc-title">MQ-2 Smoke/Gas</div><div class="gc-sub">ppm · Real-time</div></div></div></div><div class="gc-body"><canvas id="c-mq2"></canvas></div><div class="gc-ftr"><span class="gcf">Min:<span id="mn-mq2"> —</span></span><span class="gcf">Max:<span id="mx-mq2"> —</span></span></div></div>
+      <div class="gc" style="animation-delay:.08s"><div class="gc-hdr"><div class="gc-tb"><span class="gc-num">04</span><div><div class="gc-title">MQ-135 Air Quality</div><div class="gc-sub">ppm · Real-time</div></div></div></div><div class="gc-body"><canvas id="c-mq135"></canvas></div><div class="gc-ftr"><span class="gcf">Min:<span id="mn-mq135"> —</span></span><span class="gcf">Max:<span id="mx-mq135"> —</span></span></div></div>
+      <div class="gc" style="animation-delay:.16s"><div class="gc-hdr"><div class="gc-tb"><span class="gc-num">05</span><div><div class="gc-title">Water pH Level</div><div class="gc-sub">0–14 · Real-time</div></div></div></div><div class="gc-body"><canvas id="c-ph"></canvas></div><div class="gc-ftr"><span class="gcf">Min:<span id="mn-ph"> —</span></span><span class="gcf">Max:<span id="mx-ph"> —</span></span></div></div>
+      <div class="gc" style="animation-delay:.24s"><div class="gc-hdr"><div class="gc-tb"><span class="gc-num">06</span><div><div class="gc-title">Water Turbidity</div><div class="gc-sub">NTU · Real-time</div></div></div></div><div class="gc-body"><canvas id="c-turb"></canvas></div><div class="gc-ftr"><span class="gcf">Min:<span id="mn-turb"> —</span></span><span class="gcf">Max:<span id="mx-turb"> —</span></span></div></div>
+    </div>
+
+    <!-- Alert log -->
+    <div class="alog">
+      <div class="alog-hdr"><h3>⚠ System Event Log</h3><button class="alog-clr" onclick="clearLog()">Clear</button></div>
+      <div class="alog-body" id="alog-body"><div class="ali inf">[--:--:--] Dashboard loaded. Connecting to Firebase…</div></div>
+    </div>
+
+  </div>
+</div><!-- /page-dashboard -->
+
+<!-- FOOTER -->
+<div class="gov-footer">
+  <div class="gf-l">© 2026 Government of Tamil Nadu &nbsp;|&nbsp; Department of Environment &nbsp;|&nbsp; Environmental Monitoring Division &nbsp;|&nbsp; All Rights Reserved</div>
+  <div class="gf-r">TN-ENV-GEMS v3.2.1 · ESP32 WROOM-32 · Firebase RTDB · 2026</div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<!-- ═══════════════════════════════════════════════════
+     ALL JAVASCRIPT
+═══════════════════════════════════════════════════ -->
+<script>
+// ══════════════════════════════════════════════════════════════
+//  ▶▶  CONFIGURE YOUR PROJECT HERE  ◀◀
+// ══════════════════════════════════════════════════════════════
+
+// 1. FIREBASE — paste your config from Firebase console
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDWqSLILyLtaUfWrodDoGFWEmQ5sF-fqPU",
+  authDomain:        "tn-env-monitor.firebaseapp.com",
+  databaseURL:       "https://tn-env-monitor-default-rtdb.firebaseio.com",
+  projectId:         "tn-env-monitor",
+  storageBucket:     "tn-env-monitor.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+
+// 2. LOGIN CREDENTIALS — change these
+const USERS = {
+  "admin":     "tnenv@2026",
+  "officer1":  "govtpass1",
+  "inspector": "inspect@tn"
+};
+
+// ══════════════════════════════════════════════════════════════
+//  PAGE NAVIGATION
+// ══════════════════════════════════════════════════════════════
+let currentPage = 'login';
+let loggedIn    = false;
+let chartsBuilt = false;
+let fbListening = false;
+
+function goPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
+  document.getElementById('page-'+name).classList.add('show');
+  currentPage = name;
+
+  // Nav bar
+  document.getElementById('nav-bar').style.display = (name === 'login') ? 'none' : 'flex';
+
+  // Nav active state
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('act'));
+  if(name==='districts') document.getElementById('nb-dist').classList.add('act');
+  if(name==='dashboard') document.getElementById('nb-dash').classList.add('act');
+
+  // Top label
+  const labels = {login:'RESTRICTED — AUTHORISED ACCESS ONLY', districts:'DISTRICT MONITORING OVERVIEW', dashboard:'SALEM DISTRICT — LIVE MONITORING'};
+  document.getElementById('top-label').textContent = labels[name] || '';
+
+  // Build charts once when dashboard first shown
+  if(name==='dashboard' && !chartsBuilt){ buildCharts(); chartsBuilt=true; }
+  if(name==='dashboard' && !fbListening){ startFirebase(); fbListening=true; }
+
+  window.scrollTo(0,0);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════════════════════════
+function doLogin(){
+  const u   = document.getElementById('l-user').value.trim();
+  const p   = document.getElementById('l-pass').value;
+  const err = document.getElementById('login-err');
+  err.style.display = 'none';
+  if(!u||!p){ err.textContent='Please enter your Officer ID and password.'; err.style.display='block'; return; }
+  if(USERS[u] && USERS[u]===p){
+    loggedIn = true;
+    document.getElementById('nav-nm').textContent = 'Officer: '+u;
+    document.getElementById('nav-av').textContent = u.substring(0,2).toUpperCase();
+    buildDistricts();
+    goPage('districts');
+  } else {
+    err.textContent = 'Invalid Officer ID or password. Please try again.';
+    err.style.display = 'block';
+    document.getElementById('l-pass').value = '';
+    document.getElementById('l-pass').focus();
+  }
+}
+function togglePw(){ const i=document.getElementById('l-pass'); i.type=i.type==='password'?'text':'password'; }
+function doLogout(){ loggedIn=false; goPage('login'); }
+
+// ══════════════════════════════════════════════════════════════
+//  DISTRICTS PAGE
+// ══════════════════════════════════════════════════════════════
+const DISTRICTS = [
+  {n:"Chennai",          r:"Northern",  ico:"🏙️"},
+  {n:"Coimbatore",       r:"Western",   ico:"🏭"},
+  {n:"Madurai",          r:"Southern",  ico:"🛕"},
+  {n:"Tiruchirappalli",  r:"Central",   ico:"🏰"},
+  {n:"Salem",            r:"Central",   ico:"⛰️", active:true},
+  {n:"Tirunelveli",      r:"Southern",  ico:"🌾"},
+  {n:"Thoothukudi",      r:"Southern",  ico:"⚓"},
+  {n:"Vellore",          r:"Northern",  ico:"🏯"},
+  {n:"Erode",            r:"Western",   ico:"🪡"},
+  {n:"Tiruppur",         r:"Western",   ico:"👕"},
+  {n:"Dindigul",         r:"Southern",  ico:"🔒"},
+  {n:"Thanjavur",        r:"Delta",     ico:"🎭"},
+  {n:"Kancheepuram",     r:"Northern",  ico:"🕌"},
+  {n:"Chengalpattu",     r:"Northern",  ico:"🌿"},
+  {n:"Villupuram",       r:"Northern",  ico:"🌲"},
+  {n:"Cuddalore",        r:"Coastal",   ico:"🐟"},
+  {n:"Nagapattinam",     r:"Delta",     ico:"⛵"},
+  {n:"Tiruvarur",        r:"Delta",     ico:"🌊"},
+  {n:"Pudukkottai",      r:"Central",   ico:"🗿"},
+  {n:"Sivaganga",        r:"Southern",  ico:"🌺"},
+  {n:"Virudhunagar",     r:"Southern",  ico:"🎆"},
+  {n:"Ramanathapuram",   r:"Southern",  ico:"🐚"},
+  {n:"Krishnagiri",      r:"Northern",  ico:"🏔️"},
+  {n:"Dharmapuri",       r:"Northern",  ico:"🌿"},
+  {n:"Namakkal",         r:"Central",   ico:"🐓"},
+  {n:"Perambalur",       r:"Central",   ico:"💎"},
+  {n:"Ariyalur",         r:"Central",   ico:"🦕"},
+  {n:"The Nilgiris",     r:"Western",   ico:"🌁"},
+  {n:"Kallakurichi",     r:"Northern",  ico:"💧"},
+  {n:"Ranipet",          r:"Northern",  ico:"⚙️"},
+  {n:"Tirupattur",       r:"Northern",  ico:"🌳"},
+  {n:"Tenkasi",          r:"Southern",  ico:"🌊"},
+];
+
+let districtsBuilt = false;
+function buildDistricts(){
+  if(districtsBuilt) return;
+  districtsBuilt = true;
+  const grid = document.getElementById('dist-grid');
+  DISTRICTS.forEach((d,i)=>{
+    const card = document.createElement('div');
+    card.style.animationDelay = (i*0.03)+'s';
+    if(d.active){
+      card.className='dc salem';
+      card.innerHTML=`
+        <div class="dc-top"><span class="dd on"></span><span class="dbadge on">LIVE</span></div>
+        <span class="dc-icon">${d.ico}</span>
+        <div class="dc-name">${d.n}</div>
+        <div class="dc-region">${d.r} Tamil Nadu</div>
+        <div class="dc-vals">
+          <div class="dv"><div class="dv-v" id="sv-mq2d">—</div><div class="dv-l">MQ-2</div></div>
+          <div class="dv"><div class="dv-v" id="sv-phd">—</div><div class="dv-l">pH</div></div>
+          <div class="dv"><div class="dv-v" id="sv-turbd">—</div><div class="dv-l">NTU</div></div>
+        </div>
+        <div class="dc-cta go">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          VIEW DASHBOARD
+        </div>`;
+      card.onclick = ()=>{ buildCharts(); chartsBuilt=true; startFirebase(); fbListening=true; goPage('dashboard'); };
+    } else {
+      card.className='dc off';
+      card.innerHTML=`
+        <div class="dc-top"><span class="dd off"></span><span class="dbadge off">OFFLINE</span></div>
+        <span class="dc-icon">${d.ico}</span>
+        <div class="dc-name dim">${d.n}</div>
+        <div class="dc-region">${d.r} Tamil Nadu</div>
+        <div class="dc-vals">
+          <div class="dv"><div class="dv-v na">—</div><div class="dv-l">MQ-2</div></div>
+          <div class="dv"><div class="dv-v na">—</div><div class="dv-l">pH</div></div>
+          <div class="dv"><div class="dv-v na">—</div><div class="dv-l">NTU</div></div>
+        </div>
+        <div class="dc-cta no">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          NO DATA
+        </div>`;
+      card.onclick = ()=>showModal(d.n,d.ico,d.r);
+    }
+    grid.appendChild(card);
+  });
+}
+function showModal(name,ico,region){
+  document.getElementById('m-title').textContent = name+' District';
+  document.getElementById('m-ico').textContent   = ico;
+  document.getElementById('m-name').textContent  = name+' — '+region+' Tamil Nadu';
+  document.getElementById('m-msg').textContent   =
+    'Sensor installation for '+name+' district is currently pending. Environmental monitoring data will be available once the ESP32 sensor network is deployed and configured for this location.';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+
+// ══════════════════════════════════════════════════════════════
+//  THRESHOLDS
+// ══════════════════════════════════════════════════════════════
+let TH = {mq2:300, mq135:700, phLo:6.5, phHi:8.5, turb:50};
+(()=>{
+  try{ const s=localStorage.getItem('tn_th'); if(s) Object.assign(TH,JSON.parse(s)); }catch(e){}
+  document.getElementById('th-mq2').value   = TH.mq2;
+  document.getElementById('th-mq135').value = TH.mq135;
+  document.getElementById('th-phlo').value  = TH.phLo;
+  document.getElementById('th-phhi').value  = TH.phHi;
+  document.getElementById('th-turb').value  = TH.turb;
+  updTHLabels();
+})();
+function saveTH(){
+  TH.mq2   = parseFloat(document.getElementById('th-mq2').value)   ||300;
+  TH.mq135 = parseFloat(document.getElementById('th-mq135').value) ||700;
+  TH.phLo  = parseFloat(document.getElementById('th-phlo').value)  ||6.5;
+  TH.phHi  = parseFloat(document.getElementById('th-phhi').value)  ||8.5;
+  TH.turb  = parseFloat(document.getElementById('th-turb').value)  ||50;
+  try{ localStorage.setItem('tn_th',JSON.stringify(TH)); }catch(e){}
+  updTHLabels(); toast('Thresholds saved ✓','ok');
+  log('ok','Thresholds saved: MQ2='+TH.mq2+' MQ135='+TH.mq135+' pH='+TH.phLo+'–'+TH.phHi+' Turb='+TH.turb);
+}
+function updTHLabels(){
+  document.getElementById('tv-mq2').textContent   = ' '+TH.mq2;
+  document.getElementById('tv-mq135').textContent = ' '+TH.mq135;
+  document.getElementById('tv-phlo').textContent  = ' '+TH.phLo;
+  document.getElementById('tv-phhi').textContent  = ' '+TH.phHi;
+  document.getElementById('tv-turb').textContent  = ' '+TH.turb;
+  document.getElementById('td-mq2').textContent   = 'Threshold: '+TH.mq2+' ppm';
+  document.getElementById('td-mq135').textContent = 'Threshold: '+TH.mq135+' ppm';
+  document.getElementById('td-turb').textContent  = 'Threshold: '+TH.turb+' NTU';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  EMAIL (EmailJS)
+// ══════════════════════════════════════════════════════════════
+let EC = {svc:'',tpl:'',key:'',to:''};
+let mailCount=0, CD={};
+const CD_MS = 5*60*1000;
+(()=>{
+  try{
+    const s=localStorage.getItem('tn_ec');
+    if(s){ Object.assign(EC,JSON.parse(s));
+      document.getElementById('ej-svc').value=EC.svc;
+      document.getElementById('ej-tpl').value=EC.tpl;
+      document.getElementById('ej-key').value=EC.key;
+      document.getElementById('ej-to').value=EC.to;
+      if(EC.key){ emailjs.init(EC.key); setEPOk(true); }
+    }
+  }catch(e){}
+})();
+function saveEC(){
+  EC.svc=document.getElementById('ej-svc').value.trim();
+  EC.tpl=document.getElementById('ej-tpl').value.trim();
+  EC.key=document.getElementById('ej-key').value.trim();
+  EC.to =document.getElementById('ej-to').value.trim();
+  if(!EC.svc||!EC.tpl||!EC.key||!EC.to){ toast('Fill all 4 fields!','err'); return; }
+  try{ localStorage.setItem('tn_ec',JSON.stringify(EC)); }catch(e){}
+  emailjs.init(EC.key); setEPOk(true);
+  log('ok','Email config saved. Auto-alerts → '+EC.to); toast('Email config saved!','ok');
+}
+function setEPOk(ok){
+  const e=document.getElementById('ep-status');
+  e.textContent=ok?'CONFIGURED ✓':'NOT CONFIGURED';
+  e.className='ep-chip '+(ok?'ok':'err');
+}
+function sendAlert(sensor,val,unit,thresh){
+  if(!EC.svc||!EC.to) return;
+  const now=Date.now();
+  if(CD[sensor]&&(now-CD[sensor])<CD_MS) return;
+  CD[sensor]=now;
+  const ts=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'});
+  emailjs.send(EC.svc,EC.tpl,{
+    to_email:EC.to, from_name:'TN Environmental Authority — Salem',
+    sensor_name:sensor.toUpperCase(), value:val+' '+unit, threshold:thresh+' '+unit,
+    status:'THRESHOLD EXCEEDED', timestamp:ts,
+    message:'URGENT: '+sensor.toUpperCase()+' reading of '+val+' '+unit+
+            ' has exceeded the permitted limit of '+thresh+' '+unit+
+            ' at Salem District. Immediate corrective action required. Time: '+ts
+  }).then(()=>{
+    mailCount++;
+    document.getElementById('hv-mails').textContent=mailCount+' email'+(mailCount>1?'s':'')+' sent';
+    document.getElementById('ep-last').textContent='Last alert: '+new Date().toLocaleTimeString('en-IN');
+    log('mail','📧 Alert sent → '+EC.to+' | '+sensor.toUpperCase()+'='+val+' '+unit);
+    toast('Alert email sent to industry!','mail');
+  }).catch(()=>{ log('err','Email failed — check EmailJS config'); toast('Email failed!','err'); });
+}
+function testEmail(){
+  if(!EC.svc){ toast('Save email config first!','err'); return; }
+  const ts=new Date().toLocaleString('en-IN',{timeZone:'Asia/Kolkata'});
+  emailjs.send(EC.svc,EC.tpl,{
+    to_email:EC.to||'', from_name:'TN Environmental Authority',
+    sensor_name:'TEST SENSOR', value:'999 ppm', threshold:'300 ppm',
+    status:'TEST ALERT', timestamp:ts,
+    message:'TEST: This is a test alert from TN Environmental Monitoring System — Salem District. If received, the email system is working correctly.'
+  }).then(()=>{ toast('Test email sent! Check inbox.','ok'); log('mail','📧 Test email sent'); })
+    .catch(()=>{ toast('Test failed — check Service ID, Template ID & Public Key','err'); });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CHARTS
+// ══════════════════════════════════════════════════════════════
+let cAir,cWat,cM2,cM135,cPH,cT;
+const MAX=30, LBL=[], M2=[], M135=[], PH=[], T=[], PHc=[], Tc=[];
+
+function buildCharts(){
+  const co=(yMin,yMax,unit,col)=>({
+    responsive:true, maintainAspectRatio:false, animation:false,
+    plugins:{legend:{display:false}, tooltip:{backgroundColor:'#fff',borderColor:col,borderWidth:1,titleColor:col,bodyColor:'#2d4a2d',callbacks:{label:c=>' '+c.parsed.y+' '+unit}}},
+    scales:{
+      x:{ticks:{maxTicksLimit:6,color:'#5a7a5a',font:{size:9}},grid:{color:'#eaf2ea'}},
+      y:{min:yMin,max:yMax,ticks:{color:'#5a7a5a',font:{size:9}},grid:{color:'#eaf2ea'},title:{display:true,text:unit,color:'#5a7a5a',font:{size:9}}}
+    }
+  });
+  const dualO=()=>({
+    responsive:true, maintainAspectRatio:false, animation:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#fff',borderColor:'#c8dfc8',borderWidth:1}},
+    scales:{
+      x:{ticks:{maxTicksLimit:6,color:'#5a7a5a',font:{size:9}},grid:{color:'#eaf2ea'}},
+      y: {position:'left', min:0,max:14,  ticks:{color:'#2e8b47',font:{size:9}},grid:{color:'#eaf2ea'},title:{display:true,text:'pH', color:'#2e8b47',font:{size:9}}},
+      y1:{position:'right',min:0,max:500, ticks:{color:'#6a1b9a',font:{size:9}},grid:{display:false},  title:{display:true,text:'NTU',color:'#6a1b9a',font:{size:9}}}
+    }
+  });
+  const ds=(data,col,lbl)=>({label:lbl,data,borderColor:col,backgroundColor:col+'18',borderWidth:2,pointRadius:2,fill:true,tension:0.35});
+  const mk=(id,data,col,u,a,b)=>new Chart(document.getElementById(id),{type:'line',data:{labels:LBL,datasets:[ds(data,col,u)]},options:co(a,b,u,col)});
+
+  cAir  = new Chart(document.getElementById('c-air'),{type:'line',data:{labels:LBL,datasets:[ds(M2,'#e65100','MQ-2'),ds(M135,'#1565c0','MQ-135')]},options:co(0,2000,'ppm','#e65100')});
+  cWat  = new Chart(document.getElementById('c-water'),{type:'line',data:{labels:LBL,datasets:[
+    {label:'pH', data:PHc,borderColor:'#2e8b47',backgroundColor:'#2e8b4718',borderWidth:2,pointRadius:2,fill:true,tension:0.35,yAxisID:'y'},
+    {label:'NTU',data:Tc, borderColor:'#6a1b9a',backgroundColor:'#6a1b9a18',borderWidth:2,pointRadius:2,fill:true,tension:0.35,yAxisID:'y1'}
+  ]},options:dualO()});
+  cM2   = mk('c-mq2',  M2,  '#e65100','ppm',0,1000);
+  cM135 = mk('c-mq135',M135,'#1565c0','ppm',0,2000);
+  cPH   = mk('c-ph',   PH,  '#2e8b47','pH', 0,14);
+  cT    = mk('c-turb', T,   '#6a1b9a','NTU',0,500);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FIREBASE
+// ══════════════════════════════════════════════════════════════
+let fbInited=false, alertCount=0, readingCount=0;
+const breach={mq2:false,mq135:false,ph:false,turb:false};
+
+function startFirebase(){
+  if(fbInited) return;
+  // Check if config is set
+  if(FIREBASE_CONFIG.apiKey==='AIzaSyDWqSLILyLtaUfWrodDoGFWEmQ5sF-fqPU'){
+    log('wrn','Firebase not configured — open this file and paste your Firebase config at the top of the script.');
+    return;
+  }
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    fbInited=true;
+  }catch(e){ fbInited=true; } // already initialized
+
+  firebase.database().ref('.info/connected').on('value',snap=>{
+    const on=snap.val();
+    document.getElementById('cd-dot').className='cd'+(on?' on':'');
+    document.getElementById('cd-status').textContent=on?'Firebase connected — streaming live data':'Reconnecting…';
+    document.getElementById('conn-txt').textContent=on?'SYSTEM ONLINE':'RECONNECTING…';
+    log(on?'ok':'wrn', on?'Firebase connected — live data from ESP32.':'Firebase disconnected.');
+  });
+
+  firebase.database().ref('/sensors/live').on('value',snap=>{
+    const d=snap.val(); if(!d) return;
+    if(d.meta?.count) readingCount=d.meta.count; else readingCount++;
+
+    const ts=new Date().toLocaleTimeString('en-IN',{hour12:false});
+    if(LBL.length>=MAX){ [LBL,M2,M135,PH,T,PHc,Tc].forEach(a=>a.shift()); }
+    LBL.push(ts);
+
+    const v2  = +(d.mq2?.value       ??0).toFixed(1);
+    const v135= +(d.mq135?.value      ??0).toFixed(1);
+    const vph = +(d.ph?.value         ??7).toFixed(2);
+    const vt  = +(d.turbidity?.value  ??0).toFixed(1);
+
+    M2.push(v2);M135.push(v135);PH.push(vph);T.push(vt);PHc.push(vph);Tc.push(vt);
+    if(cAir){ [cAir,cWat,cM2,cM135,cPH,cT].forEach(c=>c&&c.update('none')); }
+
+    // Update Salem district card mini-values
+    const sv2=document.getElementById('sv-mq2d');   if(sv2) sv2.textContent=v2;
+    const sph=document.getElementById('sv-phd');    if(sph) sph.textContent=vph;
+    const st =document.getElementById('sv-turbd');  if(st)  st.textContent=vt;
+
+    // Hero
+    document.getElementById('hv-mq2').textContent   =v2;
+    document.getElementById('hv-mq135').textContent =v135;
+    document.getElementById('hv-ph').textContent    =vph;
+    document.getElementById('hv-turb').textContent  =vt;
+    document.getElementById('hv-reads').textContent =readingCount;
+    document.getElementById('hs-ts').textContent    ='Updated: '+ts;
+
+    const phOk=vph>=TH.phLo&&vph<=TH.phHi;
+    setT('hs-mq2',  v2>TH.mq2      ?'⚠ EXCEEDED':v2>TH.mq2*.8      ?'⚡ WARNING':'✓ Normal');
+    setT('hs-mq135',v135>TH.mq135  ?'⚠ EXCEEDED':v135>TH.mq135*.8  ?'⚡ WARNING':'✓ Normal');
+    setT('hs-ph',   phOk            ?'✓ Normal':'⚠ OUT OF RANGE');
+    setT('hs-turb', vt>TH.turb     ?'⚠ EXCEEDED':vt>TH.turb*.8     ?'⚡ WARNING':'✓ Normal');
+
+    // Sensor cards
+    updSV('mq2',  v2,  'ppm',TH.mq2,  0,1000,v2>TH.mq2,   v2>TH.mq2*.8);
+    updSV('mq135',v135,'ppm',TH.mq135,0,2000,v135>TH.mq135,v135>TH.mq135*.8);
+    updSVph(vph);
+    updSV('turb', vt,  'NTU',TH.turb, 0,300, vt>TH.turb,  vt>TH.turb*.8);
+
+    // Chart footers
+    setT('cf-mq2',v2);setT('cf-mq135',v135);setT('cf-ph',vph);setT('cf-turb',vt);
+    setMM('mq2',M2);setMM('mq135',M135);setMM('ph',PH);setMM('turb',T);
+
+    // Industry status
+    setInd('ind-mq2', v2, TH.mq2);setInd('ind-mq135',v135,TH.mq135);
+    const pie=document.getElementById('ind-ph'); pie.textContent=vph; pie.className='iv '+(phOk?'ok':'bad');
+    setInd('ind-turb',vt,TH.turb);
+    document.getElementById('ind-ts').textContent='Last: '+ts;
+
+    // Ticker
+    document.getElementById('ticker-txt').textContent=
+      'Salem · MQ-2: '+v2+' ppm  |  MQ-135: '+v135+' ppm  |  pH: '+vph+
+      '  |  Turbidity: '+vt+' NTU  |  '+(alertCount>0?alertCount+' ALERT(S)':'All Normal')+
+      '  |  Updated: '+ts+'  |  TN Environmental Authority · 2026  |  ';
+
+    // Breach check
+    chkBreach('mq2',  v2>TH.mq2,   v2,  'ppm',TH.mq2);
+    chkBreach('mq135',v135>TH.mq135,v135,'ppm',TH.mq135);
+    chkBreach('ph',   !phOk,        vph, 'pH', TH.phLo);
+    chkBreach('turb', vt>TH.turb,   vt,  'NTU',TH.turb);
+    document.getElementById('hv-alerts').textContent=alertCount;
+  });
+}
+
+function chkBreach(sensor,exceeded,val,unit,thresh){
+  if(exceeded&&!breach[sensor]){
+    breach[sensor]=true; alertCount++;
+    log('err','⚠ BREACH: '+sensor.toUpperCase()+' = '+val+' '+unit+' (limit: '+thresh+')');
+    sendAlert(sensor,val,unit,thresh);
+  } else if(!exceeded&&breach[sensor]){
+    breach[sensor]=false; alertCount=Math.max(0,alertCount-1);
+    log('ok','✓ '+sensor.toUpperCase()+' returned to safe range.');
+  }
+  document.getElementById('hv-alerts').textContent=alertCount;
+}
+
+// ── DOM helpers ───────────────────────────────────────────────
+function updSV(id,val,unit,thresh,mn,mx,danger,warn){
+  const pct=Math.min(100,((val-mn)/(mx-mn))*100)||0;
+  const st=danger?'danger':warn?'warn':'ok';
+  const v=document.getElementById('val-'+id); v.textContent=val; v.className='sv-val '+st;
+  const b=document.getElementById('badge-'+id); b.textContent=danger?'ALERT':warn?'WARNING':'NORMAL'; b.className='sv-badge '+st;
+  const bar=document.getElementById('bar-'+id); bar.style.width=pct+'%';
+  bar.style.background=danger?'var(--red)':warn?'var(--amber)':'var(--g2)';
+  const c=document.getElementById('sv-'+id);
+  c.className=c.className.replace(/ ws| ds/g,'')+(danger?' ds':warn?' ws':'');
+}
+function updSVph(val){
+  const ok=val>=TH.phLo&&val<=TH.phHi; const pct=(val/14)*100;
+  const v=document.getElementById('val-ph'); v.textContent=val; v.className='sv-val '+(ok?'ok':'danger');
+  const b=document.getElementById('badge-ph'); b.textContent=ok?'NORMAL':val<TH.phLo?'ACIDIC':'ALKALINE'; b.className='sv-badge '+(ok?'ok':'danger');
+  const bar=document.getElementById('bar-ph'); bar.style.width=pct+'%'; bar.style.background=ok?'var(--g2)':'var(--red)';
+  const c=document.getElementById('sv-ph'); c.className=c.className.replace(/ ws| ds/g,'')+(ok?'':' ds');
+}
+function setInd(id,val,thresh){
+  const el=document.getElementById(id); el.textContent=val;
+  el.className='iv '+(val>thresh?'bad':val>thresh*.8?'warn':'ok');
+}
+function setT(id,txt){ document.getElementById(id).textContent=txt; }
+function setMM(id,arr){
+  if(!arr.length) return;
+  document.getElementById('mn-'+id).textContent=' '+Math.min(...arr).toFixed(1);
+  document.getElementById('mx-'+id).textContent=' '+Math.max(...arr).toFixed(1);
+}
+
+// ── Clock ─────────────────────────────────────────────────────
+function tick(){
+  const ist=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Kolkata'}));
+  const ts=ist.toLocaleTimeString('en-IN',{hour12:false});
+  document.getElementById('top-ts').textContent=ts+' IST';
+  document.getElementById('hdr-clock').textContent=ist.toLocaleDateString('en-IN')+' '+ts+' IST';
+}
+setInterval(tick,1000); tick();
+
+// ── Log ───────────────────────────────────────────────────────
+function log(type,msg){
+  const ts=new Date().toLocaleTimeString('en-IN',{hour12:false});
+  const b=document.getElementById('alog-body');
+  const el=document.createElement('div');
+  el.className='ali '+(type==='mail'?'mail':type);
+  el.textContent='['+ts+'] '+msg;
+  b.prepend(el);
+  while(b.children.length>80) b.removeChild(b.lastChild);
+}
+function clearLog(){ document.getElementById('alog-body').innerHTML='<div class="ali inf">[--:--:--] Log cleared.</div>'; }
+
+// ── Toast ─────────────────────────────────────────────────────
+function toast(msg,type){
+  const w=document.getElementById('toasts');
+  const el=document.createElement('div'); el.className='toast '+(type||'ok');
+  el.innerHTML=(type==='mail'?'📧':type==='err'?'✗':'✓')+' <span>'+msg+'</span>';
+  w.appendChild(el);
+  setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),300); },3500);
+}
+</script>
+</body>
+</html>
